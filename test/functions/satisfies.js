@@ -28,3 +28,11 @@ test('invalid ranges never satisfied (but do not throw)', t => {
   cases.forEach(([range, ver]) =>
     t.notOk(satisfies(ver, range), `${range} not satisfied because invalid`))
 })
+
+test('issue #906 regression tests', t => {
+  t.plan(4)
+  t.ok(satisfies('1.2.3-alpha', '1.2.3-alpha'), '1.2.3-alpha satisfied by 1.2.3-alpha')
+  t.notOk(satisfies('1.2.3-alpha', '*'), '1.2.3-alpha NOT satisfied by *')
+  t.ok(satisfies('1.2.3-alpha', '* || 1.2.3-alpha'), '1.2.3-alpha satisfied by * || 1.2.3-alpha')
+  t.ok(satisfies('1.2.3-alpha', '1.2.3-alpha || *'), '1.2.3-alpha satisfied by 1.2.3-alpha || *')
+})
