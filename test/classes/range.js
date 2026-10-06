@@ -126,3 +126,43 @@ test('cache', (t) => {
   t.equal(r2.set[0][cached], true) // Will be true, showing it's cached.
   t.end()
 })
+
+test('wildcard unions preserve explicitly eligible prereleases', t => {
+  for (const text of ['* || 1.2.3-alpha', '1.2.3-alpha || *']) {
+    const range = new Range(text)
+    t.ok(range.test('1.2.3-alpha'), `${text} admits its explicit prerelease`)
+    t.notOk(range.test('1.2.3-beta'), `${text} excludes other prerelease labels`)
+    t.notOk(range.test('1.2.4-alpha'), `${text} excludes other prerelease tuples`)
+    t.ok(range.test('5.0.0'), `${text} still admits stable versions`)
+    t.ok(new Range(range.range).test('1.2.3-alpha'), 'formatted range preserves eligibility')
+  }
+  t.end()
+})
+
+test('wildcard unions with globally included prereleases still normalize', t => {
+  for (const text of [
+    '* || 1.2.3-alpha',
+    '1.2.3-alpha || *',
+    '>=1.0.0 <2.0.0 || *',
+  ]) {
+    const range = new Range(text, { includePrerelease: true })
+    t.ok(range.test('5.0.0-beta'), `${text} admits all prerelease tuples`)
+    t.equal(range.range, '', 'wildcard remains the normalized representation')
+  }
+
+  const ordinaryUnion = new Range('1.2.3 || 2.0.0', { includePrerelease: true })
+  t.ok(ordinaryUnion.test('1.2.3'), 'an OR range without a wildcard retains its alternatives')
+  t.ok(ordinaryUnion.test('2.0.0'), 'the other stable alternative still matches')
+  t.notOk(ordinaryUnion.test('1.2.3-alpha'), 'global prerelease inclusion does not change exact equality')
+  t.end()
+})
+
+test('empty and duplicate wildcard alternatives remain normalized', t => {
+  for (const text of ['||', '* || *', '* || || *']) {
+    const range = new Range(text)
+    t.equal(range.range, '', `${text} normalizes to a single wildcard`)
+    t.ok(range.test('1.2.3'), 'stable versions still match')
+    t.notOk(range.test('1.2.3-alpha'), 'unqualified prereleases still do not match')
+  }
+  t.end()
+})
